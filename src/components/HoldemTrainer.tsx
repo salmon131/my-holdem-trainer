@@ -208,23 +208,31 @@ export default function HoldemTrainer() {
         {/* Modes */}
         {mode === "chart" && (
           <div className="rounded-2xl border border-zinc-800 overflow-hidden shadow-lg">
-            <div className="grid grid-cols-14">
-              <div className="sticky left-0 bg-zinc-900/80 backdrop-blur px-2 py-1 border-b border-zinc-800">핸드</div>
-              {RANKS.map(r => (
-                <div key={`top-${r}`} className="px-2 py-1 text-center text-xs font-semibold border-b border-zinc-800 bg-zinc-900/60">{r}</div>
-              ))}
-              {RANKS.map((row, i) => (
-                <React.Fragment key={`row-${row}`}>
-                  <div className="sticky left-0 bg-zinc-900/80 backdrop-blur px-2 py-1 text-xs font-semibold border-b border-zinc-800">{row}</div>
-                  {matrix[i].map(cell => (
-                    <div
-                      key={cell.key}
-                      title={`${cell.label} • ${ACTION_LABEL[cell.action]}`}
-                      className={`h-9 text-[11px] flex items-center justify-center border-b border-r border-zinc-800 cursor-default ${ACTION_STYLE[cell.action]}`}
-                    >{cell.label}</div>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="bg-zinc-900/80 backdrop-blur px-2 py-1 text-center text-xs font-semibold border-b border-r border-zinc-800">핸드</th>
+                    {RANKS.map(r => (
+                      <th key={`top-${r}`} className="px-2 py-1 text-center text-xs font-semibold border-b border-r border-zinc-800 bg-zinc-900/60">{r}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {RANKS.map((row, i) => (
+                    <tr key={`row-${row}`}>
+                      <td className="bg-zinc-900/80 backdrop-blur px-2 py-1 text-center text-xs font-semibold border-b border-r border-zinc-800">{row}</td>
+                      {matrix[i].map(cell => (
+                        <td
+                          key={cell.key}
+                          title={`${cell.label} • ${ACTION_LABEL[cell.action]}`}
+                          className={`h-8 text-[10px] text-center border-b border-r border-zinc-800 cursor-default ${ACTION_STYLE[cell.action]}`}
+                        >{cell.label}</td>
+                      ))}
+                    </tr>
                   ))}
-                </React.Fragment>
-              ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
