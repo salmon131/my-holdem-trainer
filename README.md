@@ -2,6 +2,8 @@
 
 포커 차트 암기와 기본기 연습을 위한 웹 애플리케이션입니다.
 
+🌐 **라이브 데모**: [https://my-holdem-trainer.vercel.app/](https://my-holdem-trainer.vercel.app/)
+
 ## ✨ 주요 기능
 
 - **📊 포지션별 차트**: UTG, MP, CO, BTN, SB, BB 포지션별 시작 핸드 차트
@@ -11,18 +13,22 @@
 
 ## 🚀 시작하기
 
-### 설치
+### 🌐 바로 사용하기
+[라이브 데모](https://my-holdem-trainer.vercel.app/)에서 바로 사용할 수 있습니다!
+
+### 💻 로컬 개발
 ```bash
+# 저장소 클론
+git clone https://github.com/salmon131/my-holdem-trainer.git
+cd my-holdem-trainer
+
+# 의존성 설치
 npm install
-```
 
-### 개발 서버 실행
-```bash
+# 개발 서버 실행
 npm run dev
-```
 
-### 빌드
-```bash
+# 빌드
 npm run build
 ```
 
