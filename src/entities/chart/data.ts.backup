@@ -1,0 +1,215 @@
+import type { ChartData } from './types';
+
+// 더 구체적이고 이해하기 쉬운 차트 데이터
+export const CHART_DATA: ChartData = {
+  UTG: {
+    "AA": { 
+      action: "R", 
+      reason: "최강 핸드. 무조건 레이즈",
+      detailedReason: "포켓 에이스는 어떤 포지션에서도 최강의 핸드입니다. 뒤에 6명이 남아있어도 충분히 강해서 가치를 극대화하기 위해 레이즈합니다.",
+      examples: ["뒤에서 3-bet이 와도 4-bet 가능", "멀티웨이에서도 승률 85% 이상", "플랍에서 어떤 카드가 나와도 강함"]
+    },
+    "KK": { 
+      action: "R", 
+      reason: "AA 다음으로 강한 핸드",
+      detailedReason: "포켓 킹은 AA 다음으로 강한 핸드입니다. UTG에서도 충분히 레이즈할 가치가 있고, 뒤에서 3-bet이 와도 대응 가능합니다.",
+      examples: ["AA만 조심하면 됨", "멀티웨이에서도 승률 80% 이상", "플랍에서 A가 나와도 상황에 따라 플레이 가능"]
+    },
+    "QQ": { 
+      action: "R", 
+      reason: "프리미엄 페어. 뒤에 6명이 남아있어도 강함",
+      detailedReason: "포켓 퀸은 프리미엄 페어로 UTG에서도 충분히 레이즈할 수 있습니다. 뒤에 많은 사람이 남아있어도 승률이 높습니다.",
+      examples: ["AA, KK만 조심하면 됨", "멀티웨이에서도 승률 75% 이상", "플랍에서 A, K가 나와도 상황에 따라 플레이"]
+    },
+    "JJ": { 
+      action: "R", 
+      reason: "강한 페어. UTG에서도 레이즈 가치 있음",
+      detailedReason: "포켓 잭은 강한 페어입니다. UTG에서도 레이즈할 만한 가치가 있고, 뒤에서 콜이나 3-bet이 와도 대응 가능합니다.",
+      examples: ["AA, KK, QQ만 조심", "멀티웨이에서도 승률 70% 이상", "플랍에서 A, K, Q가 나와도 상황에 따라 플레이"]
+    },
+    "TT": { 
+      action: "R", 
+      reason: "중상급 페어. UTG에서 레이즈 가능",
+      detailedReason: "포켓 텐은 중상급 페어입니다. UTG에서도 레이즈할 수 있지만, 뒤에서 3-bet이 오면 상황에 따라 폴드할 수도 있습니다.",
+      examples: ["AA, KK, QQ, JJ만 조심", "멀티웨이에서도 승률 65% 이상", "플랍에서 A, K, Q, J가 나와도 상황에 따라 플레이"]
+    },
+    "99": { 
+      action: "R", 
+      reason: "중급 페어. UTG에서 레이즈",
+      detailedReason: "포켓 나인은 중급 페어입니다. UTG에서도 레이즈할 수 있지만, 뒤에서 3-bet이 오면 폴드할 가능성이 높습니다.",
+      examples: ["AA, KK, QQ, JJ, TT만 조심", "멀티웨이에서도 승률 60% 이상", "플랍에서 A, K, Q, J, T가 나와도 상황에 따라 플레이"]
+    },
+    "88": { 
+      action: "R", 
+      reason: "중급 페어. UTG에서 레이즈",
+      detailedReason: "포켓 에이트는 중급 페어입니다. UTG에서도 레이즈할 수 있지만, 뒤에서 3-bet이 오면 폴드할 가능성이 높습니다.",
+      examples: ["AA, KK, QQ, JJ, TT, 99만 조심", "멀티웨이에서도 승률 55% 이상", "플랍에서 A, K, Q, J, T, 9가 나와도 상황에 따라 플레이"]
+    },
+    "77": { 
+      action: "R", 
+      reason: "중급 페어. UTG에서 레이즈",
+      detailedReason: "포켓 세븐은 중급 페어입니다. UTG에서도 레이즈할 수 있지만, 뒤에서 3-bet이 오면 폴드할 가능성이 높습니다.",
+      examples: ["AA, KK, QQ, JJ, TT, 99, 88만 조심", "멀티웨이에서도 승률 50% 이상", "플랍에서 A, K, Q, J, T, 9, 8이 나와도 상황에 따라 플레이"]
+    },
+    "AKs": { 
+      action: "R", 
+      reason: "최강 오프수트. 에이스 하이 + 플러시 드로우",
+      detailedReason: "AKs는 최강의 오프수트 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능해서 UTG에서도 충분히 레이즈할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK만 조심하면 됨", "멀티웨이에서도 승률 70% 이상"]
+    },
+    "AQs": { 
+      action: "R", 
+      reason: "강한 수딧 핸드. 에이스 하이 + 플러시 드로우",
+      detailedReason: "AQs는 강한 수딧 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능해서 UTG에서도 레이즈할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK만 조심", "멀티웨이에서도 승률 65% 이상"]
+    },
+    "AJs": { 
+      action: "R", 
+      reason: "수딧 에이스. 플러시 드로우 가능",
+      detailedReason: "AJs는 수딧 에이스 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능해서 UTG에서도 레이즈할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ만 조심", "멀티웨이에서도 승률 60% 이상"]
+    },
+    "ATs": { 
+      action: "R", 
+      reason: "수딧 에이스. 플러시 드로우 가능",
+      detailedReason: "ATs는 수딧 에이스 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능해서 UTG에서도 레이즈할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ, AJ만 조심", "멀티웨이에서도 승률 55% 이상"]
+    },
+    "KQs": { 
+      action: "R", 
+      reason: "강한 수딧 핸드. 킹 하이 + 플러시 드로우",
+      detailedReason: "KQs는 강한 수딧 핸드입니다. 킹 하이으로 showdown value가 있고, 플러시 드로우도 가능해서 UTG에서도 레이즈할 수 있습니다.",
+      examples: ["킹 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ만 조심", "멀티웨이에서도 승률 60% 이상"]
+    },
+    "KJs": { 
+      action: "M", 
+      reason: "수딧 킹. UTG에서는 약간 애매",
+      detailedReason: "KJs는 수딧 킹 핸드입니다. 킹 하이으로 showdown value가 있고, 플러시 드로우도 가능하지만 UTG에서는 약간 애매합니다. 상황에 따라 레이즈하거나 폴드할 수 있습니다.",
+      examples: ["킹 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ, AJ, KQ만 조심", "멀티웨이에서도 승률 50% 이상", "상황에 따라 레이즈/폴드"]
+    },
+    "QJs": { 
+      action: "M", 
+      reason: "수딧 퀸. UTG에서는 애매",
+      detailedReason: "QJs는 수딧 퀸 핸드입니다. 퀸 하이으로 showdown value가 있고, 플러시 드로우도 가능하지만 UTG에서는 애매합니다. 상황에 따라 레이즈하거나 폴드할 수 있습니다.",
+      examples: ["퀸 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ, AJ, KQ, KJ만 조심", "멀티웨이에서도 승률 45% 이상", "상황에 따라 레이즈/폴드"]
+    },
+    "AKo": { 
+      action: "R", 
+      reason: "최강 오프수트. 에이스 하이 + 콤보 많음",
+      detailedReason: "AKo는 최강의 오프수트 핸드입니다. 에이스 하이으로 showdown value가 있고, 콤보가 많아서 UTG에서도 충분히 레이즈할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "콤보가 많음", "AA, KK만 조심", "멀티웨이에서도 승률 65% 이상"]
+    },
+    "AQo": { 
+      action: "R", 
+      reason: "강한 오프수트. 에이스 하이",
+      detailedReason: "AQo는 강한 오프수트 핸드입니다. 에이스 하이으로 showdown value가 있어서 UTG에서도 레이즈할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "AA, KK, AK만 조심", "멀티웨이에서도 승률 60% 이상"]
+    },
+    "AJo": { 
+      action: "M", 
+      reason: "오프수트 에이스. UTG에서는 애매",
+      detailedReason: "AJo는 오프수트 에이스 핸드입니다. 에이스 하이으로 showdown value가 있지만 UTG에서는 애매합니다. 상황에 따라 레이즈하거나 폴드할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "AA, KK, AK, AQ만 조심", "멀티웨이에서도 승률 50% 이상", "상황에 따라 레이즈/폴드"]
+    },
+    "A5s": { 
+      action: "M", 
+      reason: "수딧 에이스. UTG에서는 애매",
+      detailedReason: "A5s는 수딧 에이스 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능하지만 UTG에서는 애매합니다. 상황에 따라 레이즈하거나 폴드할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ, AJ, AT만 조심", "멀티웨이에서도 승률 45% 이상", "상황에 따라 레이즈/폴드"]
+    },
+    "A4s": { 
+      action: "M", 
+      reason: "수딧 에이스. UTG에서는 애매",
+      detailedReason: "A4s는 수딧 에이스 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능하지만 UTG에서는 애매합니다. 상황에 따라 레이즈하거나 폴드할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ, AJ, AT, A5만 조심", "멀티웨이에서도 승률 40% 이상", "상황에 따라 레이즈/폴드"]
+    },
+    "A3s": { 
+      action: "M", 
+      reason: "수딧 에이스. UTG에서는 애매",
+      detailedReason: "A3s는 수딧 에이스 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능하지만 UTG에서는 애매합니다. 상황에 따라 레이즈하거나 폴드할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ, AJ, AT, A5, A4만 조심", "멀티웨이에서도 승률 35% 이상", "상황에 따라 레이즈/폴드"]
+    },
+    "A2s": { 
+      action: "M", 
+      reason: "수딧 에이스. UTG에서는 애매",
+      detailedReason: "A2s는 수딧 에이스 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능하지만 UTG에서는 애매합니다. 상황에 따라 레이즈하거나 폴드할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ, AJ, AT, A5, A4, A3만 조심", "멀티웨이에서도 승률 30% 이상", "상황에 따라 레이즈/폴드"]
+    }
+  },
+  MP: {
+    "AA": { 
+      action: "R", 
+      reason: "최강 핸드. MP에서도 무조건 레이즈",
+      detailedReason: "포켓 에이스는 어떤 포지션에서도 최강의 핸드입니다. MP에서도 충분히 강해서 가치를 극대화하기 위해 레이즈합니다.",
+      examples: ["뒤에서 3-bet이 와도 4-bet 가능", "멀티웨이에서도 승률 85% 이상", "플랍에서 어떤 카드가 나와도 강함"]
+    },
+    "A5s": { 
+      action: "M", 
+      reason: "수딧 에이스. MP에서는 애매",
+      detailedReason: "A5s는 수딧 에이스 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능하지만 MP에서는 애매합니다. 상황에 따라 레이즈하거나 폴드할 수 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "AA, KK, AK, AQ, AJ, AT만 조심", "멀티웨이에서도 승률 45% 이상", "상황에 따라 레이즈/폴드"]
+    }
+  },
+  CO: {
+    "AA": { 
+      action: "R", 
+      reason: "최강 핸드. CO에서 무조건 레이즈",
+      detailedReason: "포켓 에이스는 어떤 포지션에서도 최강의 핸드입니다. CO에서도 충분히 강해서 가치를 극대화하기 위해 레이즈합니다.",
+      examples: ["뒤에서 3-bet이 와도 4-bet 가능", "멀티웨이에서도 승률 85% 이상", "플랍에서 어떤 카드가 나와도 강함"]
+    },
+    "A5s": { 
+      action: "R", 
+      reason: "수딧 에이스. CO에서 레이즈",
+      detailedReason: "A5s는 수딧 에이스 핸드입니다. 에이스 하이으로 showdown value가 있고, 플러시 드로우도 가능해서 CO에서는 레이즈할 수 있습니다. 뒤에 2명만 남아있어서 스틸 기회도 있습니다.",
+      examples: ["에이스 하이으로 showdown value 있음", "플러시 드로우 가능", "블라인드 스틸 기회", "뒤에 2명만 남아있어서 위험 낮음", "C-bet하기 좋은 핸드"]
+    },
+    "98s": { 
+      action: "R", 
+      reason: "수딧 커넥터. CO에서 레이즈",
+      detailedReason: "98s는 수딧 커넥터 핸드입니다. 플랍에서 스트레이트 드로우나 플러시 드로우가 가능하고, CO에서는 스틸 기회가 많아서 레이즈할 수 있습니다.",
+      examples: ["스트레이트 드로우 가능", "플러시 드로우 가능", "블라인드 스틸 기회", "뒤에 2명만 남아있어서 위험 낮음", "C-bet하기 좋은 핸드"]
+    }
+  },
+  BTN: {
+    "AA": { 
+      action: "R", 
+      reason: "최강 핸드. BTN에서 무조건 레이즈",
+      detailedReason: "포켓 에이스는 어떤 포지션에서도 최강의 핸드입니다. BTN에서도 충분히 강해서 가치를 극대화하기 위해 레이즈합니다.",
+      examples: ["뒤에서 3-bet이 와도 4-bet 가능", "멀티웨이에서도 승률 85% 이상", "플랍에서 어떤 카드가 나와도 강함"]
+    },
+    "98s": { 
+      action: "R", 
+      reason: "수딧 커넥터. BTN에서 레이즈",
+      detailedReason: "98s는 수딧 커넥터 핸드입니다. 플랍에서 스트레이트 드로우나 플러시 드로우가 가능하고, BTN에서는 스틸 기회가 최대라서 레이즈할 수 있습니다. 상대가 콜해도 포지션 우위로 컨트롤 가능합니다.",
+      examples: ["스트레이트 드로우 가능", "플러시 드로우 가능", "블라인드 스틸 기회 최대", "뒤에 2명만 남아있어서 위험 낮음", "포지션 우위로 컨트롤 가능", "C-bet하기 좋은 핸드"]
+    },
+    "KJo": { 
+      action: "R", 
+      reason: "오프수트 킹. BTN에서 레이즈",
+      detailedReason: "KJo는 오프수트 킹 핸드입니다. 킹 하이으로 showdown value가 있고, BTN에서는 스틸 기회가 많아서 레이즈할 수 있습니다. 상대가 콜해도 포지션 우위로 컨트롤 가능합니다.",
+      examples: ["킹 하이으로 showdown value 있음", "블라인드 스틸 기회", "뒤에 2명만 남아있어서 위험 낮음", "포지션 우위로 컨트롤 가능", "C-bet하기 좋은 핸드"]
+    }
+  },
+  SB: {
+    "AA": { 
+      action: "R", 
+      reason: "최강 핸드. SB에서 무조건 레이즈",
+      detailedReason: "포켓 에이스는 어떤 포지션에서도 최강의 핸드입니다. SB에서도 충분히 강해서 가치를 극대화하기 위해 레이즈합니다.",
+      examples: ["뒤에서 3-bet이 와도 4-bet 가능", "멀티웨이에서도 승률 85% 이상", "플랍에서 어떤 카드가 나와도 강함"]
+    }
+  },
+  BB: {
+    "AA": { 
+      action: "R", 
+      reason: "최강 핸드. BB에서 3-bet 레이즈",
+      detailedReason: "포켓 에이스는 어떤 포지션에서도 최강의 핸드입니다. BB에서도 충분히 강해서 3-bet으로 가치를 극대화합니다.",
+      examples: ["뒤에서 3-bet이 와도 4-bet 가능", "멀티웨이에서도 승률 85% 이상", "플랍에서 어떤 카드가 나와도 강함"]
+    },
+    "TT": { 
+      action: "C", 
+      reason: "중상급 페어. BB에서 콜",
+      detailedReason: "TT는 중상급 페어입니다. BB에서는 이미 돈을 넣은 상태라서 콜할 수 있습니다. 3-bet하기에는 약간 부족하지만 폴드하기에는 아까운 핸드입니다.",
+      examples: ["이미 돈을 넣은 상태", "3-bet하기에는 약간 부족", "폴드하기에는 아까운 핸드", "상대가 레이즈해도 콜 가능"]
+    }
+  }
+};
