@@ -4,9 +4,11 @@ import type { MatrixCell } from '../../entities/chart/types';
 
 interface ChartTableProps {
   matrix: MatrixCell[][];
+  selectedCell: MatrixCell | null;
+  onCellClick: (cell: MatrixCell) => void;
 }
 
-export const ChartTable: React.FC<ChartTableProps> = ({ matrix }) => {
+export const ChartTable: React.FC<ChartTableProps> = ({ matrix, selectedCell, onCellClick }) => {
   return (
     <div className="rounded-2xl border border-zinc-800 overflow-hidden shadow-lg">
       <div className="overflow-x-auto">
@@ -35,8 +37,10 @@ export const ChartTable: React.FC<ChartTableProps> = ({ matrix }) => {
                 {matrix[i].map(cell => (
                   <td
                     key={cell.key}
-                    title={`${cell.label} • ${cell.reason}\n\n${cell.detailedReason}\n\n예시:\n${cell.examples.join('\n')}`}
-                    className={`h-8 text-[10px] text-center border-b border-r border-zinc-800 cursor-default hover:scale-105 transition-transform ${getActionStyle(cell.action)}`}
+                    onClick={() => onCellClick(cell)}
+                    className={`h-8 text-[10px] text-center border-b border-r border-zinc-800 cursor-pointer hover:scale-105 transition-transform ${getActionStyle(cell.action)} ${
+                      selectedCell?.key === cell.key ? 'ring-2 ring-white ring-opacity-50' : ''
+                    }`}
                   >
                     {cell.label}
                   </td>

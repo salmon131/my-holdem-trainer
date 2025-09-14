@@ -16,6 +16,9 @@ export default function HoldemTrainer() {
   const [guess, setGuess] = useState<Action | null>(null);
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [quizCount, setQuizCount] = useState(5);
+  
+  // Chart state
+  const [selectedCell, setSelectedCell] = useState<MatrixCell | null>(null);
 
   // All 13x13 matrix cells
   const matrix = useMemo(() => {
@@ -91,6 +94,11 @@ export default function HoldemTrainer() {
     nextQuestion(); 
   };
 
+  // Reset selected cell when position changes
+  useEffect(() => {
+    setSelectedCell(null);
+  }, [position]);
+
   const isCorrect = guess ? (guess === current?.action || (current?.action === "M" && (guess === "R" || guess === "C"))) : null;
 
   return (
@@ -138,51 +146,8 @@ export default function HoldemTrainer() {
           </div>
         </div>
 
-        {/* Modes */}
-        {mode === "chart" && <ChartTable matrix={matrix} />}
-
-        {mode === "flash" && current && (
-          <QuizCard
-            hand={current.hand}
-            action={current.action}
-            detailedReason={current.detailedReason}
-            examples={current.examples}
-            position={position}
-            onAnswer={submitGuess}
-            guess={guess}
-            isCorrect={isCorrect}
-            onNext={nextQuestion}
-            score={score}
-          />
-        )}
-
-        {mode === "quiz" && current && (
-          <QuizCard
-            hand={current.hand}
-            action={current.action}
-            detailedReason={current.detailedReason}
-            examples={current.examples}
-            position={position}
-            onAnswer={submitGuess}
-            guess={guess}
-            isCorrect={isCorrect}
-            onNext={() => { 
-              if (quizCount > 1) { 
-                setQuizCount(quizCount-1); 
-                nextQuestion(); 
-              } else { 
-                setMode("chart"); 
-              } 
-              setGuess(null); 
-            }}
-            onReset={resetQuiz}
-            quizCount={quizCount}
-            score={score}
-          />
-        )}
-
-        {/* Position explanation */}
-        <div className="mt-6 p-4 bg-zinc-800/30 rounded-xl border border-zinc-700">
+        {/* Position explanation - moved above chart */}
+        <div className="mb-6 p-4 bg-zinc-800/30 rounded-xl border border-zinc-700">
           <h3 className="text-lg font-semibold text-zinc-100 mb-3">📍 {position} 포지션 특징</h3>
           <div className="text-sm text-zinc-300 space-y-2">
             {position === "UTG" && (
@@ -240,6 +205,91 @@ export default function HoldemTrainer() {
             )}
           </div>
         </div>
+
+        {/* Modes */}
+        {mode === "chart" && <ChartTable matrix={matrix} selectedCell={selectedCell} onCellClick={setSelectedCell} />}
+
+        {/* Selected cell explanation */}
+        {mode === "chart" && selectedCell && (
+          <div className="mt-6 p-4 bg-zinc-800/50 rounded-xl border border-zinc-700">
+            <h3 className="text-lg font-semibold text-zinc-100 mb-3">🎯 {selectedCell.label} 핸드 분석</h3>
+            <div className="text-sm text-zinc-300 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-400">액션:</span>
+                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                  selectedCell.action === 'R' ? 'bg-emerald-500/80 text-white' :
+                  selectedCell.action === 'C' ? 'bg-indigo-500/80 text-white' :
+                  selectedCell.action === 'F' ? 'bg-zinc-700/70 text-white' :
+                  'bg-amber-500/80 text-white'
+                }`}>
+                  {selectedCell.action === 'R' ? 'Raise' : 
+                   selectedCell.action === 'C' ? 'Call' : 
+                   selectedCell.action === 'F' ? 'Fold' : 'Mix'}
+                </span>
+                <span className="text-zinc-400">•</span>
+                <span className="text-zinc-300">{selectedCell.reason}</span>
+              </div>
+              
+              <div>
+                <div className="font-semibold text-zinc-100 mb-2">💡 상세 이유:</div>
+                <div className="text-zinc-300">{selectedCell.detailedReason}</div>
+              </div>
+              
+              <div>
+                <div className="font-semibold text-zinc-100 mb-2">📋 핵심 포인트:</div>
+                <ul className="text-zinc-300 space-y-1">
+                  {selectedCell.examples.map((example, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="text-emerald-400 mr-2">•</span>
+                      <span>{example}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {mode === "flash" && current && (
+          <QuizCard
+            hand={current.hand}
+            action={current.action}
+            detailedReason={current.detailedReason}
+            examples={current.examples}
+            position={position}
+            onAnswer={submitGuess}
+            guess={guess}
+            isCorrect={isCorrect}
+            onNext={nextQuestion}
+            score={score}
+          />
+        )}
+
+        {mode === "quiz" && current && (
+          <QuizCard
+            hand={current.hand}
+            action={current.action}
+            detailedReason={current.detailedReason}
+            examples={current.examples}
+            position={position}
+            onAnswer={submitGuess}
+            guess={guess}
+            isCorrect={isCorrect}
+            onNext={() => { 
+              if (quizCount > 1) { 
+                setQuizCount(quizCount-1); 
+                nextQuestion(); 
+              } else { 
+                setMode("chart"); 
+              } 
+              setGuess(null); 
+            }}
+            onReset={resetQuiz}
+            quizCount={quizCount}
+            score={score}
+          />
+        )}
+
 
         {/* Footer tips */}
         <div className="mt-6 text-sm text-zinc-400 leading-relaxed">
