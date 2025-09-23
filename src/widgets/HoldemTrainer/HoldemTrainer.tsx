@@ -5,11 +5,12 @@ import type { MatrixCell } from "../../entities/chart/types";
 import { CHART_DATA } from "../../entities/chart/data";
 import { ChartTable } from "../../features/chart/ChartTable";
 import { QuizCard } from "../../features/quiz/QuizCard";
+import { CommunityTrainer } from "../../features/community/CommunityTrainer";
 import { Button } from "../../shared/ui/Button/Button";
 
 export default function HoldemTrainer() {
   const [position, setPosition] = useState<"UTG" | "MP" | "CO" | "BTN" | "SB" | "BB">("CO");
-  const [mode, setMode] = useState<"chart" | "flash" | "quiz">("chart");
+  const [mode, setMode] = useState<"chart" | "flash" | "quiz" | "community">("chart");
 
   // Flash/Quiz state
   const [current, setCurrent] = useState<{hand: string; action: Action; detailedReason: string; examples: string[]}>();
@@ -111,13 +112,17 @@ export default function HoldemTrainer() {
             <p className="text-zinc-400">차트 암기 & 기본기 연습용 미니 웹앱 (v2)</p>
           </div>
           <div className="flex gap-2">
-            {(["chart","flash","quiz"] as const).map(m => (
+            {(["chart","flash","quiz","community"] as const).map(m => (
               <Button
                 key={m}
                 onClick={() => setMode(m)}
                 variant={mode === m ? "primary" : "secondary"}
+                className="text-sm px-3 py-2"
               >
-                {m === "chart" ? "Chart" : m === "flash" ? "Flashcards" : "Quick Quiz"}
+                {m === "chart" ? "Chart" : 
+                 m === "flash" ? "Flashcards" : 
+                 m === "quiz" ? "Quick Quiz" : 
+                 "Community"}
               </Button>
             ))}
           </div>
@@ -289,6 +294,8 @@ export default function HoldemTrainer() {
             score={score}
           />
         )}
+
+        {mode === "community" && <CommunityTrainer />}
 
 
         {/* Footer tips */}
