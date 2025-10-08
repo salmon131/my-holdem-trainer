@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, parseCard, createCardStr } from '../../shared/ui/Card/Card';
+import { Card, parseCard, createCardStr, type Suit } from '../../shared/ui/Card/Card';
 import { 
   generateRandomCommunityCards, 
   generateRandomHoleCards, 
@@ -10,10 +10,10 @@ import {
 } from '../../shared/lib/poker';
 import { Button } from '../../shared/ui/Button/Button';
 
-interface HandByRank {
-  rank: string;
-  hands: { holeCards: PokerCard[]; description: string; isSeparator?: boolean }[];
-}
+  interface HandByRank {
+    rank: string;
+    hands: { holeCards: PokerCard[]; description: string; isSeparator?: boolean; bestHand?: HandResult }[];
+  }
 
 export const CommunityTrainer: React.FC = () => {
   const [communityCards, setCommunityCards] = useState<PokerCard[]>([]);
@@ -51,7 +51,7 @@ export const CommunityTrainer: React.FC = () => {
       )
     );
     
-    const handsByRankMap = new Map<string, { holeCards: PokerCard[]; description: string; subRank?: string }[]>();
+    const handsByRankMap = new Map<string, { holeCards: PokerCard[]; description: string; subRank?: string; bestHand?: HandResult }[]>();
     
     // Try all possible 2-card combinations
     for (let i = 0; i < availableCards.length; i++) {
@@ -61,10 +61,13 @@ export const CommunityTrainer: React.FC = () => {
         const bestHand = allHands[0]; // Highest hand
         
         if (bestHand) {
+          // Debug: Log the hand evaluation with 5-card hand
+          
           const rankKey = bestHand.rank;
           if (!handsByRankMap.has(rankKey)) {
             handsByRankMap.set(rankKey, []);
           }
+          
           
           // Create sub-rank for better grouping within same hand rank
           let subRank = '';
@@ -77,12 +80,18 @@ export const CommunityTrainer: React.FC = () => {
           } else if (bestHand.rank === 'four-of-a-kind') {
             // Extract the specific four of a kind type
             subRank = bestHand.description;
+          } else if (bestHand.rank === 'straight') {
+            // For straight, use the top card as sub-rank
+            const topCard = Math.max(...bestHand.cards.map(card => RANK_VALUES[card.rank] || 0));
+            const topCardName = Object.keys(RANK_VALUES).find(key => RANK_VALUES[key] === topCard) || 'Unknown';
+            subRank = `스트레이트 (탑카드 ${topCardName})`;
           }
           
           handsByRankMap.get(rankKey)!.push({
             holeCards,
             description: bestHand.description,
-            subRank
+            subRank,
+            bestHand: bestHand // Store the actual best hand for comparison
           });
         }
       }
@@ -100,7 +109,7 @@ export const CommunityTrainer: React.FC = () => {
         const hands = handsByRankMap.get(rank)!;
         
         // Group by sub-rank for better organization
-        const groupedHands = new Map<string, { holeCards: PokerCard[]; description: string }[]>();
+        const groupedHands = new Map<string, { holeCards: PokerCard[]; description: string; bestHand?: HandResult }[]>();
         
         for (const hand of hands) {
           const groupKey = hand.subRank || hand.description;
@@ -124,34 +133,59 @@ export const CommunityTrainer: React.FC = () => {
             if (!hasDuplicate) {
               groupedHands.get(groupKey)!.push({
                 holeCards: hand.holeCards,
-                description: hand.description
+                description: hand.description,
+                bestHand: hand.bestHand
               });
             }
           } else {
             // For flush-related hands, show all suit combinations
             groupedHands.get(groupKey)!.push({
               holeCards: hand.holeCards,
-              description: hand.description
+              description: hand.description,
+              bestHand: hand.bestHand
             });
           }
         }
         
-        // Convert grouped hands back to flat array with separators
-        const finalHands: { holeCards: PokerCard[]; description: string; isSeparator?: boolean }[] = [];
-        let isFirstGroup = true;
-        
-        for (const [subRank, groupHands] of groupedHands) {
-          if (!isFirstGroup) {
-            // Add separator between different sub-ranks
-            finalHands.push({
-              holeCards: [],
-              description: '',
-              isSeparator: true
-            });
-          }
-          finalHands.push(...groupHands);
-          isFirstGroup = false;
+        // Flatten all hands and sort them by strength
+        const allHands: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }[] = [];
+        for (const groupHands of groupedHands.values()) {
+          // Use the already stored bestHand information
+          allHands.push(...groupHands);
         }
+        
+        
+        // Sort all hands by strength within the same rank using a stable sort approach
+        const sortedHands = [...allHands].sort((a, b) => {
+          let comparison = 0;
+          if (rank === 'full-house') {
+            comparison = compareFullHouseHands(a, b);
+          } else if (rank === 'two-pair') {
+            comparison = compareTwoPairHands(a, b);
+          } else if (rank === 'four-of-a-kind') {
+            comparison = compareFourOfAKindHands(a, b);
+          } else if (rank === 'three-of-a-kind') {
+            comparison = compareThreeOfAKindHands(a, b);
+          } else if (rank === 'pair') {
+            comparison = comparePairHands(a, b);
+          } else if (rank === 'straight') {
+            // For straight, compare by top card only
+            comparison = compareStraightHands(a, b);
+          } else if (rank === 'flush' || rank === 'straight-flush' || rank === 'royal-flush') {
+            // For flush hands, compare by highest card in the hand
+            comparison = compareFlushHands(a, b);
+          } else {
+            // For high-card and other hands, compare by highest card
+            comparison = compareHandsByHighCard(a, b);
+          }
+          
+          
+          return comparison;
+        });
+        
+        
+        // Convert to final array format
+        const finalHands: { holeCards: PokerCard[]; description: string; isSeparator?: boolean; bestHand?: HandResult }[] = sortedHands;
         
         result.push({
           rank: getRankDisplayName(rank),
@@ -177,6 +211,315 @@ export const CommunityTrainer: React.FC = () => {
       'high-card': '하이카드'
     };
     return names[rank] || rank;
+  };
+
+  // Helper functions for sorting hands within the same rank
+  const RANK_VALUES: Record<string, number> = {
+    '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
+    'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
+  };
+
+  // Helper function to get the best 5-card hand from hole cards + community cards
+  const getBestHand = (holeCards: PokerCard[]): HandResult | null => {
+    const allHands = generateAllHands(communityCards, holeCards);
+    return allHands[0] || null;
+  };
+
+  // Helper function to get rank counts
+  const getRankCounts = (ranks: string[]): Record<string, number> => {
+    const counts: Record<string, number> = {};
+    for (const rank of ranks) {
+      counts[rank] = (counts[rank] || 0) + 1;
+    }
+    return counts;
+  };
+
+  const compareFullHouseHands = (handA: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }, handB: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }): number => {
+    // Use stored bestHand if available, otherwise calculate it with community cards
+    const bestA = handA.bestHand || getBestHand(handA.holeCards);
+    const bestB = handB.bestHand || getBestHand(handB.holeCards);
+    
+    if (!bestA || !bestB) return 0;
+    
+    
+    // For full house, compare trips first, then pair
+    const getFullHouseRanks = (hand: HandResult) => {
+      const counts = getRankCounts(hand.cards.map(card => card.rank));
+      let trips = 0;
+      let pair = 0;
+      
+      for (const [rank, count] of Object.entries(counts)) {
+        if (count === 3) trips = RANK_VALUES[rank as string] || 0;
+        if (count === 2) pair = RANK_VALUES[rank as string] || 0;
+      }
+      
+      return { trips, pair };
+    };
+    
+    const ranksA = getFullHouseRanks(bestA);
+    const ranksB = getFullHouseRanks(bestB);
+    
+    if (ranksA.trips !== ranksB.trips) {
+      return ranksB.trips - ranksA.trips; // Higher trips first
+    }
+    
+    return ranksB.pair - ranksA.pair; // Higher pair first
+  };
+
+  const compareTwoPairHands = (handA: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }, handB: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }): number => {
+    const bestA = handA.bestHand || getBestHand(handA.holeCards);
+    const bestB = handB.bestHand || getBestHand(handB.holeCards);
+    
+    if (!bestA || !bestB) return 0;
+    
+    // For two pair, compare high pair first, then low pair, then kicker
+    const getTwoPairRanks = (hand: HandResult) => {
+      const counts = getRankCounts(hand.cards.map(card => card.rank));
+      const pairs: number[] = [];
+      let kicker = 0;
+      
+      for (const [rank, count] of Object.entries(counts)) {
+        if (count === 2) {
+          pairs.push(RANK_VALUES[rank as string] || 0);
+        } else if (count === 1) {
+          kicker = RANK_VALUES[rank as string] || 0;
+        }
+      }
+      
+      pairs.sort((a, b) => b - a); // Sort pairs in descending order
+      return { high: pairs[0] || 0, low: pairs[1] || 0, kicker };
+    };
+    
+    const ranksA = getTwoPairRanks(bestA);
+    const ranksB = getTwoPairRanks(bestB);
+    
+    if (ranksA.high !== ranksB.high) {
+      return ranksB.high - ranksA.high; // Higher pair first
+    }
+    
+    if (ranksA.low !== ranksB.low) {
+      return ranksB.low - ranksA.low; // Higher low pair first
+    }
+    
+    return ranksB.kicker - ranksA.kicker; // Higher kicker first
+  };
+
+  const compareFourOfAKindHands = (handA: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }, handB: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }): number => {
+    const bestA = handA.bestHand || getBestHand(handA.holeCards);
+    const bestB = handB.bestHand || getBestHand(handB.holeCards);
+    
+    if (!bestA || !bestB) return 0;
+    
+    // For four of a kind, compare the four cards first, then the kicker
+    const getFourOfAKindRank = (hand: HandResult) => {
+      const counts = getRankCounts(hand.cards.map(card => card.rank));
+      
+      for (const [rank, count] of Object.entries(counts)) {
+        if (count === 4) {
+          return RANK_VALUES[rank as string] || 0;
+        }
+      }
+      return 0;
+    };
+    
+    const getKicker = (hand: HandResult) => {
+      const counts = getRankCounts(hand.cards.map(card => card.rank));
+      
+      for (const [rank, count] of Object.entries(counts)) {
+        if (count === 1) {
+          return RANK_VALUES[rank as string] || 0;
+        }
+      }
+      return 0;
+    };
+    
+    const fourA = getFourOfAKindRank(bestA);
+    const fourB = getFourOfAKindRank(bestB);
+    
+    if (fourA !== fourB) {
+      return fourB - fourA; // Higher four of a kind first
+    }
+    
+    const kickerA = getKicker(bestA);
+    const kickerB = getKicker(bestB);
+    
+    return kickerB - kickerA; // Higher kicker first
+  };
+
+  const compareFlushHands = (handA: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }, handB: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }): number => {
+    const bestA = handA.bestHand || getBestHand(handA.holeCards);
+    const bestB = handB.bestHand || getBestHand(handB.holeCards);
+    
+    if (!bestA || !bestB) return 0;
+    
+    
+    // For flush hands, compare cards from highest to lowest
+    const getSortedCardValues = (hand: HandResult) => {
+      return hand.cards
+        .map(card => RANK_VALUES[card.rank] || 0)
+        .sort((a, b) => b - a); // Sort in descending order
+    };
+    
+    const cardsA = getSortedCardValues(bestA);
+    const cardsB = getSortedCardValues(bestB);
+    
+    // Compare cards one by one from highest to lowest
+    for (let i = 0; i < Math.min(cardsA.length, cardsB.length); i++) {
+      if (cardsA[i] !== cardsB[i]) {
+        return cardsB[i] - cardsA[i]; // Higher card wins
+      }
+    }
+    
+    return 0;
+  };
+
+  const compareThreeOfAKindHands = (handA: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }, handB: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }): number => {
+    const bestA = handA.bestHand || getBestHand(handA.holeCards);
+    const bestB = handB.bestHand || getBestHand(handB.holeCards);
+    
+    if (!bestA || !bestB) return 0;
+    
+    console.log(`  Comparing Three of a Kind: ${handA.holeCards.map(c => `${c.rank}${c.suit}`).join(' ')} vs ${handB.holeCards.map(c => `${c.rank}${c.suit}`).join(' ')}`);
+    console.log(`    Hand A: ${bestA.cards.map(c => `${c.rank}${c.suit}`).join(' ')} -> ${bestA.description}`);
+    console.log(`    Hand B: ${bestB.cards.map(c => `${c.rank}${c.suit}`).join(' ')} -> ${bestB.description}`);
+    
+    // Debug: Show the actual 5-card hands being compared
+    console.log(`    Hand A 5-card: [${bestA.cards.map(c => `${c.rank}${c.suit}`).join(', ')}]`);
+    console.log(`    Hand B 5-card: [${bestB.cards.map(c => `${c.rank}${c.suit}`).join(', ')}]`);
+    
+    // For three of a kind, compare trips first, then kickers
+    const getThreeOfAKindRank = (hand: HandResult) => {
+      const counts = getRankCounts(hand.cards.map(card => card.rank));
+      
+      for (const [rank, count] of Object.entries(counts)) {
+        if (count === 3) {
+          return RANK_VALUES[rank as string] || 0;
+        }
+      }
+      return 0;
+    };
+    
+    const getKickers = (hand: HandResult) => {
+      const counts = getRankCounts(hand.cards.map(card => card.rank));
+      const kickers: number[] = [];
+      
+      for (const [rank, count] of Object.entries(counts)) {
+        if (count === 1) {
+          kickers.push(RANK_VALUES[rank as string] || 0);
+        }
+      }
+      
+      kickers.sort((a, b) => b - a); // Sort kickers in descending order
+      return kickers;
+    };
+    
+    const tripsA = getThreeOfAKindRank(bestA);
+    const tripsB = getThreeOfAKindRank(bestB);
+    
+    if (tripsA !== tripsB) {
+      return tripsB - tripsA; // Higher trips first
+    }
+    
+    const kickersA = getKickers(bestA);
+    const kickersB = getKickers(bestB);
+    
+    // Compare kickers one by one
+    for (let i = 0; i < Math.min(kickersA.length, kickersB.length); i++) {
+      if (kickersA[i] !== kickersB[i]) {
+        return kickersB[i] - kickersA[i];
+      }
+    }
+    
+    return 0;
+  };
+
+  const comparePairHands = (handA: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }, handB: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }): number => {
+    const bestA = handA.bestHand || getBestHand(handA.holeCards);
+    const bestB = handB.bestHand || getBestHand(handB.holeCards);
+    
+    if (!bestA || !bestB) return 0;
+    
+    // For pair, compare pair first, then kickers
+    const getPairRank = (hand: HandResult) => {
+      const counts = getRankCounts(hand.cards.map(card => card.rank));
+      
+      for (const [rank, count] of Object.entries(counts)) {
+        if (count === 2) {
+          return RANK_VALUES[rank as string] || 0;
+        }
+      }
+      return 0;
+    };
+    
+    const getKickers = (hand: HandResult) => {
+      const counts = getRankCounts(hand.cards.map(card => card.rank));
+      const kickers: number[] = [];
+      
+      for (const [rank, count] of Object.entries(counts)) {
+        if (count === 1) {
+          kickers.push(RANK_VALUES[rank as string] || 0);
+        }
+      }
+      
+      kickers.sort((a, b) => b - a); // Sort kickers in descending order
+      return kickers;
+    };
+    
+    const pairA = getPairRank(bestA);
+    const pairB = getPairRank(bestB);
+    
+    if (pairA !== pairB) {
+      return pairB - pairA; // Higher pair first
+    }
+    
+    const kickersA = getKickers(bestA);
+    const kickersB = getKickers(bestB);
+    
+    // Compare kickers one by one
+    for (let i = 0; i < Math.min(kickersA.length, kickersB.length); i++) {
+      if (kickersA[i] !== kickersB[i]) {
+        return kickersB[i] - kickersA[i];
+      }
+    }
+    
+    return 0;
+  };
+
+
+  const compareStraightHands = (handA: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }, handB: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }): number => {
+    const bestA = handA.bestHand || getBestHand(handA.holeCards);
+    const bestB = handB.bestHand || getBestHand(handB.holeCards);
+    
+    if (!bestA || !bestB) return 0;
+    
+    
+    // For straight hands, compare by highest card (top card) only
+    const getTopCard = (hand: HandResult) => {
+      return Math.max(...hand.cards.map(card => RANK_VALUES[card.rank] || 0));
+    };
+    
+    const topA = getTopCard(bestA);
+    const topB = getTopCard(bestB);
+    
+    return topB - topA; // Higher top card wins
+  };
+
+  const compareHandsByHighCard = (handA: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }, handB: { holeCards: PokerCard[]; description: string; bestHand?: HandResult }): number => {
+    const bestA = handA.bestHand || getBestHand(handA.holeCards);
+    const bestB = handB.bestHand || getBestHand(handB.holeCards);
+    
+    if (!bestA || !bestB) return 0;
+    
+    
+    // Compare by highest card in the best 5-card hand
+    const getHighestCard = (hand: HandResult) => {
+      return Math.max(...hand.cards.map(card => RANK_VALUES[card.rank] || 0));
+    };
+    
+    const highestA = getHighestCard(bestA);
+    const highestB = getHighestCard(bestB);
+    
+    return highestB - highestA;
   };
 
   useEffect(() => {
@@ -277,24 +620,57 @@ export const CommunityTrainer: React.FC = () => {
                                 {/* Hole Cards - Show cards with available suits */}
                                 <div className="flex justify-center gap-1 mb-1">
                                   {hand.holeCards.map((card, cardIndex) => {
-                                    // Find available suits for this rank (excluding community cards and previously used suits)
-                                    const usedSuits = hand.holeCards.slice(0, cardIndex).map(prevCard => {
-                                      const prevAvailableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
-                                        !communityCards.some(commCard => 
-                                          commCard.rank === prevCard.rank && commCard.suit === suit
-                                        )
+                                    // For flush-related hands, prioritize the suit that matches the flush
+                                    const isFlushRelated = hand.description.includes('플러시') || 
+                                                          hand.description.includes('Flush') || 
+                                                          hand.description.includes('로얄');
+                                    
+                                    let displaySuit = card.suit;
+                                    
+                                    if (isFlushRelated) {
+                                      // For flush hands, try to use the same suit as the community cards' flush suit
+                                      const communitySuits = communityCards.map(c => c.suit);
+                                      const flushSuit = communitySuits.find(suit => 
+                                        communitySuits.filter(s => s === suit).length >= 3
                                       );
-                                      return prevAvailableSuits.length > 0 ? prevAvailableSuits[0] : prevCard.suit;
-                                    });
-                                    
-                                    const availableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
-                                      !communityCards.some(commCard => 
-                                        commCard.rank === card.rank && commCard.suit === suit
-                                      ) && !usedSuits.includes(suit)
-                                    );
-                                    
-                                    // Use the first available suit, or fallback to the original suit
-                                    const displaySuit = availableSuits.length > 0 ? availableSuits[0] : card.suit;
+                                      
+                                      if (flushSuit) {
+                                        // Check if this rank is available in the flush suit
+                                        const isAvailableInFlushSuit = !communityCards.some(commCard => 
+                                          commCard.rank === card.rank && commCard.suit === flushSuit
+                                        );
+                                        
+                                        if (isAvailableInFlushSuit) {
+                                          displaySuit = flushSuit as Suit;
+                                        } else {
+                                          // Find any available suit for this rank
+                                          const availableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
+                                            !communityCards.some(commCard => 
+                                              commCard.rank === card.rank && commCard.suit === suit
+                                            )
+                                          );
+                                          displaySuit = (availableSuits.length > 0 ? availableSuits[0] : card.suit) as Suit;
+                                        }
+                                      }
+                                    } else {
+                                      // For non-flush hands, find available suits (excluding community cards and previously used suits)
+                                      const usedSuits = hand.holeCards.slice(0, cardIndex).map(prevCard => {
+                                        const prevAvailableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
+                                          !communityCards.some(commCard => 
+                                            commCard.rank === prevCard.rank && commCard.suit === suit
+                                          )
+                                        );
+                                        return (prevAvailableSuits.length > 0 ? prevAvailableSuits[0] : prevCard.suit) as Suit;
+                                      });
+                                      
+                                      const availableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
+                                        !communityCards.some(commCard => 
+                                          commCard.rank === card.rank && commCard.suit === suit
+                                        ) && !usedSuits.includes(suit as Suit)
+                                      );
+                                      
+                                      displaySuit = (availableSuits.length > 0 ? availableSuits[0] : card.suit) as Suit;
+                                    }
                                     
                                     return (
                                       <Card
@@ -312,22 +688,54 @@ export const CommunityTrainer: React.FC = () => {
                                 {/* Card Names */}
                                 <div className="text-xs text-zinc-400 mb-1">
                                   {hand.holeCards.map((card, cardIndex) => {
-                                    const usedSuits = hand.holeCards.slice(0, cardIndex).map(prevCard => {
-                                      const prevAvailableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
-                                        !communityCards.some(commCard => 
-                                          commCard.rank === prevCard.rank && commCard.suit === suit
-                                        )
+                                    // Use the same logic as card display
+                                    const isFlushRelated = hand.description.includes('플러시') || 
+                                                          hand.description.includes('Flush') || 
+                                                          hand.description.includes('로얄');
+                                    
+                                    let displaySuit = card.suit;
+                                    
+                                    if (isFlushRelated) {
+                                      const communitySuits = communityCards.map(c => c.suit);
+                                      const flushSuit = communitySuits.find(suit => 
+                                        communitySuits.filter(s => s === suit).length >= 3
                                       );
-                                      return prevAvailableSuits.length > 0 ? prevAvailableSuits[0] : prevCard.suit;
-                                    });
+                                      
+                                      if (flushSuit) {
+                                        const isAvailableInFlushSuit = !communityCards.some(commCard => 
+                                          commCard.rank === card.rank && commCard.suit === flushSuit
+                                        );
+                                        
+                                        if (isAvailableInFlushSuit) {
+                                          displaySuit = flushSuit as Suit;
+                                        } else {
+                                          const availableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
+                                            !communityCards.some(commCard => 
+                                              commCard.rank === card.rank && commCard.suit === suit
+                                            )
+                                          );
+                                          displaySuit = (availableSuits.length > 0 ? availableSuits[0] : card.suit) as Suit;
+                                        }
+                                      }
+                                    } else {
+                                      const usedSuits = hand.holeCards.slice(0, cardIndex).map(prevCard => {
+                                        const prevAvailableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
+                                          !communityCards.some(commCard => 
+                                            commCard.rank === prevCard.rank && commCard.suit === suit
+                                          )
+                                        );
+                                        return (prevAvailableSuits.length > 0 ? prevAvailableSuits[0] : prevCard.suit) as Suit;
+                                      });
+                                      
+                                      const availableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
+                                        !communityCards.some(commCard => 
+                                          commCard.rank === card.rank && commCard.suit === suit
+                                        ) && !usedSuits.includes(suit as Suit)
+                                      );
+                                      
+                                      displaySuit = (availableSuits.length > 0 ? availableSuits[0] : card.suit) as Suit;
+                                    }
                                     
-                                    const availableSuits = ['hearts', 'diamonds', 'clubs', 'spades'].filter(suit => 
-                                      !communityCards.some(commCard => 
-                                        commCard.rank === card.rank && commCard.suit === suit
-                                      ) && !usedSuits.includes(suit)
-                                    );
-                                    
-                                    const displaySuit = availableSuits.length > 0 ? availableSuits[0] : card.suit;
                                     const cardStr = createCardStr(card.rank, displaySuit);
                                     return cardStr.replace('T', '10');
                                   }).join(' ')}

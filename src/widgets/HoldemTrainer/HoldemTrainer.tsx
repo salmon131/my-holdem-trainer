@@ -1,22 +1,16 @@
 import { useMemo, useState, useEffect } from "react";
-import { POSITIONS, RANKS, type Action } from "../../shared/lib/constants";
+import { POSITIONS, RANKS } from "../../shared/lib/constants";
 import { codeHand } from "../../shared/lib/utils";
 import type { MatrixCell } from "../../entities/chart/types";
 import { CHART_DATA } from "../../entities/chart/data";
 import { ChartTable } from "../../features/chart/ChartTable";
-import { QuizCard } from "../../features/quiz/QuizCard";
 import { CommunityTrainer } from "../../features/community/CommunityTrainer";
 import { Button } from "../../shared/ui/Button/Button";
 
 export default function HoldemTrainer() {
   const [position, setPosition] = useState<"UTG" | "MP" | "CO" | "BTN" | "SB" | "BB">("CO");
-  const [mode, setMode] = useState<"chart" | "flash" | "quiz" | "community">("chart");
+  const [mode, setMode] = useState<"chart" | "community">("chart");
 
-  // Flash/Quiz state
-  const [current, setCurrent] = useState<{hand: string; action: Action; detailedReason: string; examples: string[]}>();
-  const [guess, setGuess] = useState<Action | null>(null);
-  const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [quizCount, setQuizCount] = useState(5);
   
   // Chart state
   const [selectedCell, setSelectedCell] = useState<MatrixCell | null>(null);
@@ -51,56 +45,12 @@ export default function HoldemTrainer() {
     return cells;
   }, [position]);
 
-  // Build a random drill question from current position distribution
-  const nextQuestion = () => {
-    const weights: [string, Action, string, string, string[], number][] = [];
-    for (const r1 of RANKS) {
-      for (const r2 of RANKS) {
-        const suited = RANKS.indexOf(r1) < RANKS.indexOf(r2) ? true : RANKS.indexOf(r1) > RANKS.indexOf(r2) ? false : null;
-        const code = codeHand(r1, r2, suited);
-        const entry = CHART_DATA[position][code] ?? { 
-          action: "F", 
-          reason: "폴드. 이 핸드는 이 포지션에서 플레이하기에 너무 약함.",
-          detailedReason: "이 핸드는 현재 포지션에서 플레이하기에 너무 약합니다.",
-          examples: ["더 강한 핸드로 기다리기"]
-        };
-        const w = entry.action === "F" ? 1 : entry.action === "M" ? 2 : 3;
-        weights.push([code, entry.action, entry.reason, entry.detailedReason, entry.examples, w]);
-      }
-    }
-    const total = weights.reduce((s, x) => s + x[5], 0);
-    let t = Math.random() * total;
-    for (const [code, action, , detailedReason, examples, w] of weights) {
-      if ((t -= w) <= 0) {
-        setCurrent({ hand: code, action, detailedReason, examples });
-        setGuess(null);
-        return;
-      }
-    }
-  };
-
-  useEffect(() => { if (mode !== "chart") nextQuestion(); }, [mode, position]);
-
-  const submitGuess = (a: Action) => {
-    if (!current) return;
-    if (guess) return;
-    setGuess(a);
-    const ok = a === current.action || (current.action === "M" && (a === "R" || a === "C"));
-    setScore(s => ({ correct: s.correct + (ok ? 1 : 0), total: s.total + 1 }));
-  };
-
-  const resetQuiz = () => { 
-    setScore({ correct: 0, total: 0 }); 
-    setQuizCount(5); 
-    nextQuestion(); 
-  };
 
   // Reset selected cell when position changes
   useEffect(() => {
     setSelectedCell(null);
   }, [position]);
 
-  const isCorrect = guess ? (guess === current?.action || (current?.action === "M" && (guess === "R" || guess === "C"))) : null;
 
   return (
     <div className="min-h-screen w-full bg-zinc-950 text-zinc-100 p-6">
@@ -112,17 +62,14 @@ export default function HoldemTrainer() {
             <p className="text-zinc-400">차트 암기 & 기본기 연습용 미니 웹앱 (v2)</p>
           </div>
           <div className="flex gap-2">
-            {(["chart","flash","quiz","community"] as const).map(m => (
+            {(["chart","community"] as const).map(m => (
               <Button
                 key={m}
                 onClick={() => setMode(m)}
                 variant={mode === m ? "primary" : "secondary"}
                 className="text-sm px-3 py-2"
               >
-                {m === "chart" ? "Chart" : 
-                 m === "flash" ? "Flashcards" : 
-                 m === "quiz" ? "Quick Quiz" : 
-                 "Community"}
+                {m === "chart" ? "Chart" : "Community"}
               </Button>
             ))}
           </div>
@@ -255,45 +202,6 @@ export default function HoldemTrainer() {
           </div>
         )}
 
-        {mode === "flash" && current && (
-          <QuizCard
-            hand={current.hand}
-            action={current.action}
-            detailedReason={current.detailedReason}
-            examples={current.examples}
-            position={position}
-            onAnswer={submitGuess}
-            guess={guess}
-            isCorrect={isCorrect}
-            onNext={nextQuestion}
-            score={score}
-          />
-        )}
-
-        {mode === "quiz" && current && (
-          <QuizCard
-            hand={current.hand}
-            action={current.action}
-            detailedReason={current.detailedReason}
-            examples={current.examples}
-            position={position}
-            onAnswer={submitGuess}
-            guess={guess}
-            isCorrect={isCorrect}
-            onNext={() => { 
-              if (quizCount > 1) { 
-                setQuizCount(quizCount-1); 
-                nextQuestion(); 
-              } else { 
-                setMode("chart"); 
-              } 
-              setGuess(null); 
-            }}
-            onReset={resetQuiz}
-            quizCount={quizCount}
-            score={score}
-          />
-        )}
 
         {mode === "community" && <CommunityTrainer />}
 
